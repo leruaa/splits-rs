@@ -1,0 +1,28 @@
+[package]
+name = "splits"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+alloy-primitives = "0.6"
+alloy-sol-types = { version = "0.6", features = ["json"] }
+alloy = { git = "https://github.com/alloy-rs/alloy", features = [
+    "network",
+    "rpc",
+    "rpc-client",
+    "rpc-types",
+    "rpc-types-eth",
+    "transports",
+    "providers",
+] }
+alloy-contract = { git = "https://github.com/alloy-rs/alloy" }
+futures = "0.3"
+
+[dev-dependencies]
+tokio = { version = "1", features = ["rt", "macros"] }
+dotenv = "0.15"
+
+[patch.crates-io]
+alloy-primitives = { git = "https://github.com/alloy-rs/core" }
+alloy-sol-types = { git = "https://github.com/alloy-rs/core" }
+alloy-sol-macro = { git = "https://github.com/alloy-rs/core" }
