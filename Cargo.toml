@@ -1,3 +1,6 @@
 [workspace]
-members = ["crates/*"]
+members = ["cli", "crates/*"]
 resolver = "2"
+
+[workspace.dependencies]
+alloy = { git = "https://github.com/alloy-rs/alloy" }

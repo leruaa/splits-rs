@@ -1,18 +1,23 @@
-use std::{pin::Pin, sync::Arc};
+use std::{convert, pin::Pin, sync::Arc};
 
 use alloy::{
     network::{Ethereum, Network, TransactionBuilder},
+    primitives::{Address, U256},
     providers::Provider,
     rpc::types::eth::{BlockNumberOrTag, Filter},
+    sol,
+    sol_types::{SolCall, SolEvent},
     transports::{Transport, TransportErrorKind, TransportResult},
 };
-use alloy_primitives::{Address, U256};
-use alloy_sol_types::{sol, SolCall, SolEvent};
 use futures::{stream::unfold, Stream, StreamExt};
 
 use crate::types::Account;
 
-sol!(SplitMainContract, "abi/SplitMain.json");
+sol!(
+    #[sol(rpc)]
+    SplitMainContract,
+    "abi/SplitMain.json"
+);
 
 pub struct SplitMain {
     address: Address,
@@ -30,17 +35,17 @@ impl SplitMain {
         token: Address,
     ) -> TransportResult<U256>
     where
-        P: Provider<N, T>,
+        P: Provider<T, N>,
         N: Network,
         T: Transport + Clone,
     {
         let call = SplitMainContract::getERC20BalanceCall::new((account, token));
 
         let tx = N::TransactionRequest::default()
-            .with_to(self.address.into())
-            .with_input(call.abi_encode().into());
+            .with_to(self.address)
+            .with_input(call.abi_encode());
 
-        let response = provider.call(&tx, None).await?;
+        let response = provider.call(&tx).await?;
 
         let response = SplitMainContract::getERC20BalanceCall::abi_decode_returns(&response, true)
             .map_err(TransportErrorKind::custom)?;
@@ -54,17 +59,17 @@ impl SplitMain {
         account: Address,
     ) -> TransportResult<U256>
     where
-        P: Provider<N, T>,
+        P: Provider<T, N>,
         N: Network,
         T: Transport + Clone,
     {
         let call = SplitMainContract::getETHBalanceCall::new((account,));
 
         let tx = N::TransactionRequest::default()
-            .with_to(self.address.into())
-            .with_input(call.abi_encode().into());
+            .with_to(self.address)
+            .with_input(call.abi_encode());
 
-        let response = provider.call(&tx, None).await?;
+        let response = provider.call(&tx).await?;
 
         let response = SplitMainContract::getETHBalanceCall::abi_decode_returns(&response, true)
             .map_err(TransportErrorKind::custom)?;
@@ -79,7 +84,7 @@ impl SplitMain {
         to_block: Option<B>,
     ) -> TransportResult<Pin<Box<dyn Stream<Item = TransportResult<Account>>>>>
     where
-        P: Provider<Ethereum, T> + 'static,
+        P: Provider<T, Ethereum> + 'static,
         T: Transport + Clone,
         B: Into<BlockNumberOrTag>,
     {
@@ -102,15 +107,16 @@ impl SplitMain {
                     let account = provider
                         .get_transaction_by_hash(tx_hash)
                         .await
-                        .map(|tx| {
-                            SplitMainContract::createSplitCall::abi_decode(&tx.input, true).ok()
+                        .map(|tx| tx.ok_or(TransportErrorKind::custom_str("Transaction not found")))
+                        .and_then(convert::identity)
+                        .and_then(|tx| {
+                            SplitMainContract::createSplitCall::abi_decode(&tx.input, true)
+                                .map_err(TransportErrorKind::custom)
                         })
                         .and_then(|call| {
-                            SplitMainContract::CreateSplit::decode_raw_log(
-                                log.topics, &log.data, true,
-                            )
-                            .map(|event| Account::new(event.split, call.map(|c| c.distributorFee)))
-                            .map_err(TransportErrorKind::custom)
+                            SplitMainContract::CreateSplit::decode_log_data(log.data(), true)
+                                .map(|event| Account::new(event.split, call.distributorFee))
+                                .map_err(TransportErrorKind::custom)
                         });
 
                     Some((account, (logs, provider)))
@@ -143,17 +149,17 @@ impl SplitMain {
 
         N::TransactionRequest::default()
             .with_from(self.address)
-            .with_input(call.abi_encode().into())
+            .with_input(call.abi_encode())
     }
 
     pub fn withdraw<N>(&self, account: Address, eth: U256, tokens: Address) -> N::TransactionRequest
     where
         N: Network,
     {
-        let call = SplitMainContract::withdrawCall::new((account, eth, tokens));
+        let call = SplitMainContract::withdrawCall::new((account, eth, vec![tokens]));
 
         N::TransactionRequest::default()
             .with_from(self.address)
-            .with_input(call.abi_encode().into())
+            .with_input(call.abi_encode())
     }
 }

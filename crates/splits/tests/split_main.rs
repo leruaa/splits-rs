@@ -1,7 +1,6 @@
 use std::{env, sync::Arc};
 
-use alloy::{network::Ethereum, providers::ProviderBuilder, rpc::client::RpcClient};
-use alloy_primitives::address;
+use alloy::{network::Ethereum, primitives::address, providers::ProviderBuilder};
 use dotenv::dotenv;
 use futures::StreamExt;
 use splits::SplitMain;
@@ -10,8 +9,7 @@ use splits::SplitMain;
 async fn test_get_create_splits_logs() {
     dotenv().ok();
     let eth_rpc = env::var("ETH_HTTP_RPC").unwrap();
-    let rpc_client = RpcClient::builder().reqwest_http(eth_rpc.parse().unwrap());
-    let provider = ProviderBuilder::<_, Ethereum>::new().on_client(rpc_client);
+    let provider = ProviderBuilder::<_, _, Ethereum>::new().on_http(eth_rpc.parse().unwrap());
     let split_main = SplitMain::new(address!("2ed6c4B5dA6378c7897AC67Ba9e43102Feb694EE"));
 
     let accounts = split_main
@@ -23,12 +21,8 @@ async fn test_get_create_splits_logs() {
         .for_each(|acc| async {
             match acc {
                 Ok(acc) => {
-                    if acc.distributor_fee.unwrap_or_default() > 0 {
-                        println!(
-                            "{}: {}",
-                            acc.address,
-                            acc.distributor_fee.unwrap_or_default()
-                        )
+                    if acc.distributor_fee > 0 {
+                        println!("{}: {}", acc.address, acc.distributor_fee)
                     }
                 }
                 Err(err) => println!("{err}"),
