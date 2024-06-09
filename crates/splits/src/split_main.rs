@@ -115,7 +115,14 @@ impl SplitMain {
                         })
                         .and_then(|call| {
                             SplitMainContract::CreateSplit::decode_log_data(log.data(), true)
-                                .map(|event| Account::new(event.split, call.distributorFee))
+                                .map(|event| {
+                                    Account::new(
+                                        event.split,
+                                        call.accounts,
+                                        call.percentAllocations,
+                                        call.distributorFee,
+                                    )
+                                })
                                 .map_err(TransportErrorKind::custom)
                         });
 
@@ -130,25 +137,24 @@ impl SplitMain {
 
     pub fn distribute_erc20<N>(
         &self,
-        split: Address,
+        account: Account,
         token: Address,
-        distributor_fee: u32,
         distributor_address: Address,
     ) -> N::TransactionRequest
     where
         N: Network,
     {
         let call = SplitMainContract::distributeERC20Call::new((
-            split,
+            account.address,
             token,
-            vec![],
-            vec![],
-            distributor_fee,
+            account.accounts,
+            account.percents_allocation,
+            account.distributor_fee,
             distributor_address,
         ));
 
         N::TransactionRequest::default()
-            .with_from(self.address)
+            .with_to(self.address)
             .with_input(call.abi_encode())
     }
 
