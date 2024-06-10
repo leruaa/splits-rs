@@ -21,3 +21,8 @@ async-trait = "0.1"
 [dev-dependencies]
 tokio = { version = "1", features = ["rt", "macros"] }
 dotenv = "0.15"
+alloy = { workspace = true, features = [
+    "node-bindings",
+    "signers",
+    "signer-wallet",
+] }
