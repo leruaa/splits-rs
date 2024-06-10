@@ -5,7 +5,7 @@ pub struct Config {
 }
 
 impl Config {
-    pub fn new(chain_id: u8) -> Self {
+    pub fn new(chain_id: u64) -> Self {
         match chain_id {
             1 => Self {
                 main_address: address!("2ed6c4B5dA6378c7897AC67Ba9e43102Feb694EE"),

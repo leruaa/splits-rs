@@ -1,6 +1,10 @@
 mod config;
-mod split_main;
+pub use config::Config;
+
+mod split_provider_ext;
+pub use split_provider_ext::{SplitMainContract, SplitProviderExt};
+
 mod types;
 
-pub use config::Config;
-pub use split_main::{SplitMain, SplitMainContract};
+mod query;
+pub use query::get_split_accounts;

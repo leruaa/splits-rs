@@ -5,6 +5,7 @@ edition = "2021"
 
 [dependencies]
 alloy = { workspace = true, features = [
+    "eips",
     "network",
     "rpc",
     "rpc-client",
@@ -15,6 +16,7 @@ alloy = { workspace = true, features = [
     "contract",
 ] }
 futures = "0.3"
+async-trait = "0.1"
 
 [dev-dependencies]
 tokio = { version = "1", features = ["rt", "macros"] }
